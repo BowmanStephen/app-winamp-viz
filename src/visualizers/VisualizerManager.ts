@@ -452,10 +452,22 @@ export class VisualizerManager {
     }
   }
 
+  // Debug flag
+  private _renderDebugLogged: boolean = false;
+
   /**
    * Render the active visualizer
    */
   render(): void {
+    if (!this._renderDebugLogged) {
+      this._renderDebugLogged = true;
+      console.log('[VisualizerManager] render() debug:', {
+        hasActiveVisualizer: !!this.activeVisualizer,
+        isActive: this.activeVisualizer?.isActive,
+        activeVisualizerId: this.activeVisualizerId,
+      });
+    }
+
     if (!this.activeVisualizer || !this.activeVisualizer.isActive) {
       return;
     }

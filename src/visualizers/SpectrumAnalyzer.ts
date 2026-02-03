@@ -37,6 +37,9 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   private barHeights: Float32Array = new Float32Array(0);
   private targetHeights: Float32Array = new Float32Array(0);
   private peakHolds: PeakHold[] = [];
+  private barXPositions: number[] = []; // Store X positions for each bar
+  private baseY: number = 0; // Base Y position for bars
+  private logicalHeight: number = 0; // Store logical height for render calculations
 
   // Demo mode
   private isDemoMode: boolean = false;
@@ -60,8 +63,11 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas;
 
-    const width = canvas.clientWidth || 800;
-    const height = canvas.clientHeight || 400;
+    // Use window dimensions to avoid DPR multiplication on re-init
+    // canvas.width may already include DPR scaling from a previous visualizer
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.logicalHeight = height; // Store for render calculations
 
     // Setup Three.js scene
     this.scene = new THREE.Scene();
@@ -112,7 +118,7 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
     this.barGeometry = new THREE.BoxGeometry(1, 1, 1);
     this.barGeometry.translate(0, 0.5, 0); // Pivot at bottom
 
-    // Custom shader material for phosphor glow
+    // Custom shader material for phosphor glow (works with InstancedMesh)
     this.barMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -122,12 +128,13 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       vertexShader: `
         varying vec2 vUv;
         varying float vHeight;
-        
+
         void main() {
           vUv = uv;
           vHeight = position.y;
-          
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+          // Apply instance transform for InstancedMesh
+          vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
@@ -135,30 +142,29 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
         uniform float uTime;
         uniform float uGlowIntensity;
         uniform float uBarCount;
-        
+
         varying vec2 vUv;
         varying float vHeight;
-        
+
         void main() {
-          // Gradient based on bar position
-          float t = vUv.x;
-          
-          // Classic spectrum colors: green -> yellow -> red
+          // Use vUv.y for color gradient (height-based coloring)
+          float t = vUv.y;
+
+          // Classic spectrum colors: green at bottom -> yellow -> red at top
           vec3 color;
           if (t < 0.5) {
             color = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), t * 2.0);
           } else {
             color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.5) * 2.0);
           }
-          
-          // Phosphor glow effect
-          float glow = exp(-vUv.y * 2.0) * uGlowIntensity;
-          color += color * glow * 0.5;
-          
-          // Edge highlighting
-          float edge = 1.0 - abs(vUv.x - 0.5) * 2.0;
-          edge = pow(edge, 0.5);
-          
+
+          // Phosphor glow effect - brighter at bottom
+          float glow = exp(-vUv.y * 1.5) * uGlowIntensity;
+          color += color * glow * 0.3;
+
+          // Gentle edge softening (minimum 0.7 brightness at edges)
+          float edge = 0.7 + 0.3 * (1.0 - abs(vUv.x - 0.5) * 2.0);
+
           gl_FragColor = vec4(color * edge, 1.0);
         }
       `,
@@ -172,13 +178,16 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       this.barCount,
     );
 
-    // Initialize instance matrices
+    // Initialize instance matrices and store positions
     const dummy = new THREE.Object3D();
     const startX = -totalWidth / 2 + this.barWidth / 2;
+    this.baseY = -height / 2 + 10; // Store base Y position
+    this.barXPositions = []; // Reset X positions array
 
     for (let i = 0; i < this.barCount; i++) {
       const x = startX + i * (this.barWidth + this.barSpacing);
-      dummy.position.set(x, -height / 2 + 10, 0);
+      this.barXPositions.push(x); // Store X position
+      dummy.position.set(x, this.baseY, 0);
       dummy.scale.set(this.barWidth, 1, 1);
       dummy.updateMatrix();
       this.barMesh.setMatrixAt(i, dummy.matrix);
@@ -330,8 +339,8 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
 
     const smoothing = this.config.smoothing || 0.3;
     const dummy = new THREE.Object3D();
-    const height = this.canvas?.clientHeight || 400;
-    const maxBarHeight = height * 0.85;
+    // Use stored logical height to match camera coordinates (not DPR-scaled canvas.height)
+    const maxBarHeight = this.logicalHeight * 0.85;
 
     // Update bar heights with smoothing
     for (let i = 0; i < this.barCount; i++) {
@@ -346,13 +355,9 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       // Scale to pixel height
       const barHeight = newHeight * maxBarHeight;
 
-      // Update instance matrix
-      const matrix = new THREE.Matrix4();
-      this.barMesh.getMatrixAt(i, matrix);
-      const position = new THREE.Vector3();
-      position.setFromMatrixPosition(matrix);
-
-      dummy.position.copy(position);
+      // Update instance matrix using stored positions (not extracting from matrix)
+      const x = this.barXPositions[i] ?? 0;
+      dummy.position.set(x, this.baseY, 0);
       dummy.scale.set(this.barWidth, Math.max(barHeight, 1), 1);
       dummy.updateMatrix();
       this.barMesh.setMatrixAt(i, dummy.matrix);

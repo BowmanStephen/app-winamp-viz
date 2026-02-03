@@ -64,8 +64,9 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
   async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas;
 
-    const width = canvas.clientWidth || 800;
-    const height = canvas.clientHeight || 400;
+    // Use window dimensions to avoid DPR multiplication on re-init
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     // Setup Three.js scene
     this.scene = new THREE.Scene();

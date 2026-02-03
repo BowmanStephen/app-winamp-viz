@@ -43,6 +43,7 @@ export class AudioEngine {
   private demoOscillators: OscillatorNode[] = [];
   private demoGainNodes: GainNode[] = [];
   private isDemoMode: boolean = false;
+  private _debugLogged: boolean = false;
 
   /**
    * Private constructor to prevent direct instantiation
@@ -192,6 +193,19 @@ export class AudioEngine {
   public getAudioData(): AudioData {
     const frequencyData = this.getFrequencyData();
     const timeDomainData = this.getTimeDomainData();
+
+    // DEBUG: Log once to verify data flow
+    if (this.isDemoMode && !this._debugLogged) {
+      this._debugLogged = true; // Log exactly once
+      const maxFreq = Math.max(...frequencyData);
+      console.log("[AudioEngine] getAudioData DEBUG", {
+        contextState: this.audioContext?.state,
+        hasAnalyser: !!this.analyser,
+        frequencyBinCount: this.analyser?.frequencyBinCount,
+        maxFreqValue: maxFreq,
+        sampleFreqData: Array.from(frequencyData.slice(0, 10)),
+      });
+    }
     const floatFrequencyData = this.getFloatFrequencyData();
     const floatTimeDomainData = this.getFloatTimeDomainData();
 
@@ -289,6 +303,15 @@ export class AudioEngine {
     // Clean up any existing demo
     this.stopDemoMode();
 
+    // Create analyzer and connect through a silent gain node
+    // Data must flow to destination for AnalyserNode to work,
+    // but we mute it so demo mode is silent
+    this.analyser = this.createAnalyser();
+    const silentGain = this.audioContext.createGain();
+    silentGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+    this.analyser.connect(silentGain);
+    silentGain.connect(this.audioContext.destination);
+
     // Create multiple oscillators for richer demo
     const frequencies = [110, 220, 440, 880]; // A2, A3, A4, A5
 
@@ -305,7 +328,8 @@ export class AudioEngine {
       gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
 
       oscillator.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
+      // Connect gain nodes to analyzer (which routes to destination)
+      gainNode.connect(this.analyser);
 
       oscillator.start();
 
@@ -313,18 +337,12 @@ export class AudioEngine {
       this.demoGainNodes.push(gainNode);
     }
 
-    // Create analyzer if needed
-    if (!this.analyser) {
-      this.analyser = this.createAnalyser();
-      // Connect last gain node to analyser
-      const lastGainNode = this.demoGainNodes[this.demoGainNodes.length - 1];
-      if (lastGainNode !== undefined && this.analyser) {
-        lastGainNode.connect(this.analyser);
-      }
-    }
-
     this.isDemoMode = true;
-    console.log("[AudioEngine] Demo mode started");
+    console.log("[AudioEngine] Demo mode started", {
+      contextState: this.audioContext.state,
+      analyserConnected: !!this.analyser,
+      oscillatorCount: this.demoOscillators.length,
+    });
   }
 
   /**

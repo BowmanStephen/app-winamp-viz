@@ -77,6 +77,9 @@ interface UseAudioAnalyzerReturn {
   /** Initialize with an audio element */
   initWithElement: (element: HTMLAudioElement) => Promise<void>;
 
+  /** Initialize with an audio file */
+  initWithFile: (file: File) => Promise<void>;
+
   /** Resume audio context (required after browser autoplay policy) */
   resume: () => Promise<void>;
 
@@ -210,6 +213,9 @@ export function useAudioAnalyzer(
     };
   }, [updateInterval]);
 
+  // Audio element ref for file playback
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   // Initialize with audio element
   const initWithElement = useCallback(
     async (element: HTMLAudioElement): Promise<void> => {
@@ -222,6 +228,45 @@ export function useAudioAnalyzer(
         await engine.init(element);
         setIsInitialized(true);
         setIsDemoMode(false);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+        throw err;
+      }
+    },
+    [],
+  );
+
+  // Initialize with audio file
+  const initWithFile = useCallback(
+    async (file: File): Promise<void> => {
+      const engine = engineRef.current;
+      if (!engine) {
+        throw new Error("AudioEngine not initialized");
+      }
+
+      try {
+        // Stop demo mode
+        engine.stopDemoMode();
+        setIsDemoMode(false);
+
+        // Create audio element if needed
+        if (!audioElementRef.current) {
+          audioElementRef.current = new Audio();
+          audioElementRef.current.loop = true;
+        }
+
+        // Create object URL for file
+        const url = URL.createObjectURL(file);
+        audioElementRef.current.src = url;
+
+        // Initialize engine with element
+        await engine.init(audioElementRef.current);
+
+        // Start playback
+        await audioElementRef.current.play();
+        setIsInitialized(true);
+        setIsPlaying(true);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -312,6 +357,7 @@ export function useAudioAnalyzer(
     togglePlay,
     setDemoMode,
     initWithElement,
+    initWithFile,
     resume,
     isInitialized,
     error,

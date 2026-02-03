@@ -1,0 +1,68 @@
+# Architecture Overview
+# Complete system architecture diagram for the Winamp Visualizer
+
+flowchart TB
+    subgraph App["📻 WinampVisualizerApp"]
+        direction TB
+        
+        subgraph Core["🔧 Core Systems"]
+            AudioEngine["AudioEngine\n&lt;Web Audio API&gt;"]
+            ThemeManager["ThemeManager\n&lt;Theme System&gt;"]
+            ConfigManager["ConfigManager\n&lt;Settings&gt;"]
+        end
+        
+        subgraph Visualizers["🎨 Visualizer Manager"]
+            VM["VisualizerManager\n&lt;Active Visualizer&gt;"]
+            
+            subgraph Implementations["Visualizer Implementations"]
+                Spectrum["SpectrumAnalyzer\nFFT Bars"]
+                Oscilloscope["Oscilloscope\nWaveform"]
+                Milkdrop["MilkdropRenderer\nBeat-reactive"]
+                VUMeter["VUMeter\nPeak/RMS"]
+            end
+        end
+        
+        subgraph UI["🖥️ User Interface"]
+            MainWindow["MainWindow\n&lt;CRT Container&gt;"]
+            TitleBar["TitleBar\n&lt;Draggable&gt;"]
+            Controls["ControlPanel\n&lt;Play/Pause/Stop&gt;"]
+            VisualizerSelector["VisualizerSelector\n&lt;Tab/Buttons&gt;"]
+            Playlist["PlaylistPanel\n&lt;Track List&gt;"]
+            StatusBar["StatusBar\n&lt;Info/Time&gt;"]
+        end
+        
+        subgraph Render["🎬 Rendering Pipeline"]
+            Renderer["WebGLRenderer\n&lt;Three.js&gt;"]
+            Scene["Scene\n&lt;3D Context&gt;"]
+            PostProcess["PostProcess\n&lt;CRT Effects&gt;"]
+        end
+    end
+    
+    App --> Core
+    App --> Visualizers
+    App --> UI
+    App --> Render
+    
+    AudioEngine --> VM
+    VM --> Spectrum
+    VM --> Oscilloscope
+    VM --> Milkdrop
+    VM --> VUMeter
+    
+    Spectrum --> Scene
+    Oscilloscope --> Scene
+    Milkdrop --> Scene
+    VUMeter --> Scene
+    
+    Scene --> PostProcess
+    PostProcess --> Renderer
+    
+    UI --> VM
+    UI --> ThemeManager
+    UI --> ConfigManager
+    
+    ThemeManager --> UI
+    ThemeManager --> Visualizers
+    
+    ConfigManager --> AudioEngine
+    ConfigManager --> ThemeManager

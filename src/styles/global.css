@@ -1,0 +1,372 @@
+/**
+ * Global Styles
+ *
+ * 90s-inspired CSS reset and design tokens for the Winamp Visualizer.
+ *
+ * @module global.css
+ */
+
+/* ============================================================================
+   CSS Reset - 90s Appropriate
+   ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  text-rendering: optimizeSpeed;
+}
+
+body {
+  font-family: "MS Sans Serif", "Microsoft Sans Serif", "Arial", sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--theme-foreground, #eaeaea);
+  background-color: var(--theme-background, #0a0a1a);
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+/* Remove default focus outlines (we'll add custom ones) */
+:focus {
+  outline: none;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -2px;
+}
+
+/* ============================================================================
+   CSS Custom Properties - Design Tokens
+   ============================================================================ */
+
+:root {
+  /* Color palette - defaults (overridden by themes) */
+  --theme-primary: #00ff9d;
+  --theme-secondary: #00d9ff;
+  --theme-background: #0a0a1a;
+  --theme-foreground: #eaeaea;
+  --theme-muted: #4a4a6a;
+
+  /* Spectrum colors */
+  --theme-spectrum-0: #ff0066;
+  --theme-spectrum-1: #ff3366;
+  --theme-spectrum-2: #ff6633;
+  --theme-spectrum-3: #ffcc00;
+  --theme-spectrum-4: #66ff00;
+  --theme-spectrum-5: #00ff9d;
+  --theme-spectrum-6: #00d9ff;
+  --theme-spectrum-7: #0066ff;
+  --theme-spectrum-8: #6600ff;
+  --theme-spectrum-9: #cc00ff;
+
+  /* 90s UI Colors */
+  --win95-face: #c0c0c0;
+  --win95-highlight: #ffffff;
+  --win95-shadow: #808080;
+  --win95-dark-shadow: #404040;
+  --win95-black: #000000;
+  --win95-active-title: #000080;
+  --win95-inactive-title: #808080;
+
+  /* Winamp specific */
+  --winamp-green: #00ff00;
+  --winamp-dark: #2b2b2b;
+
+  /* Spacing */
+  --space-xs: 2px;
+  --space-sm: 4px;
+  --space-md: 8px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Sizing */
+  --control-height: 22px;
+  --control-height-sm: 18px;
+  --control-height-lg: 26px;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-popover: 400;
+  --z-tooltip: 500;
+  --z-crt-overlay: 1000;
+
+  /* Timing */
+  --timing-instant: 0ms;
+  --timing-fast: 50ms;
+  --timing-normal: 100ms;
+  --timing-slow: 200ms;
+}
+
+/* ============================================================================
+   Scrollbar Styling (90s)
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--win95-face);
+  border: 2px solid;
+  border-color: var(--win95-dark-shadow) var(--win95-highlight)
+    var(--win95-highlight) var(--win95-dark-shadow);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--win95-face);
+  border: 2px solid;
+  border-color: var(--win95-highlight) var(--win95-dark-shadow)
+    var(--win95-dark-shadow) var(--win95-highlight);
+  box-shadow:
+    inset 1px 1px 0 var(--win95-highlight),
+    inset -1px -1px 0 var(--win95-shadow);
+}
+
+::-webkit-scrollbar-thumb:active {
+  border-color: var(--win95-dark-shadow) var(--win95-highlight)
+    var(--win95-highlight) var(--win95-dark-shadow);
+}
+
+::-webkit-scrollbar-button {
+  background: var(--win95-face);
+  border: 2px solid;
+  border-color: var(--win95-highlight) var(--win95-dark-shadow)
+    var(--win95-dark-shadow) var(--win95-highlight);
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-button:hover {
+  background: #d4d4d4;
+}
+
+::-webkit-scrollbar-button:active {
+  border-color: var(--win95-dark-shadow) var(--win95-highlight)
+    var(--win95-highlight) var(--win95-dark-shadow);
+}
+
+/* Scrollbar arrows using background images */
+::-webkit-scrollbar-button:vertical:start {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpolygon points='5,2 2,7 8,7' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+::-webkit-scrollbar-button:vertical:end {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpolygon points='2,3 8,3 5,8' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+::-webkit-scrollbar-button:horizontal:start {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpolygon points='7,2 7,8 2,5' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+::-webkit-scrollbar-button:horizontal:end {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpolygon points='2,2 8,5 2,8' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: 16px;
+  scrollbar-color: var(--win95-face) var(--win95-face);
+}
+
+/* ============================================================================
+   Selection Colors
+   ============================================================================ */
+
+::selection {
+  background-color: var(--win95-active-title);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: var(--win95-active-title);
+  color: #ffffff;
+}
+
+/* ============================================================================
+   CRT Base Effects
+   ============================================================================ */
+
+/* Phosphor glow for text */
+.crt-text {
+  text-shadow:
+    0 0 2px currentColor,
+    0 0 4px currentColor,
+    0 0 8px currentColor;
+}
+
+/* Green phosphor */
+.crt-green {
+  color: #33ff33;
+  text-shadow:
+    0 0 4px #33ff33,
+    0 0 8px #33ff33,
+    0 0 16px #33ff33;
+}
+
+/* Amber phosphor */
+.crt-amber {
+  color: #ffb000;
+  text-shadow:
+    0 0 4px #ffb000,
+    0 0 8px #ffb000,
+    0 0 16px #ffb000;
+}
+
+/* White phosphor (monochrome) */
+.crt-white {
+  color: #e0e0e0;
+  text-shadow:
+    0 0 4px #e0e0e0,
+    0 0 8px #e0e0e0;
+}
+
+/* ============================================================================
+   Body/HTML Base Styles
+   ============================================================================ */
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+/* ============================================================================
+   Utility Classes
+   ============================================================================ */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Hidden */
+.hidden {
+  display: none !important;
+}
+
+/* Visually hidden but accessible */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* No select */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Monospace font */
+.font-mono {
+  font-family: "Courier New", Courier, monospace;
+}
+
+/* Pixelated rendering */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+/* ============================================================================
+   Animation Keyframes
+   ============================================================================ */
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

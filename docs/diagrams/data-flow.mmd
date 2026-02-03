@@ -1,0 +1,71 @@
+# Data Flow Architecture
+# Shows how audio data flows through the system
+
+flowchart LR
+    subgraph Input["📥 Input Layer"]
+        Audio[Audio Source]
+        UserInput[User Input]
+        Config[Configuration]
+    end
+    
+    subgraph Processing["⚙️ Processing Layer"]
+        AudioProc[AudioProcessor]
+        FFT[FFT Analysis]
+        Beat[Beat Detection]
+        ThemeProc[Theme Processor]
+    end
+    
+    subgraph Data["💾 Data Layer"]
+        AudioData[(AudioData)]
+        ThemeData[(Theme)]
+        ConfigData[(Settings)]
+    end
+    
+    subgraph Visualization["🎨 Visualization Layer"]
+        Spectrum[Frequency Bars]
+        Waveform[Oscilloscope]
+        Particles[Milkdrop]
+        VU[VU Meter]
+    end
+    
+    subgraph Rendering["🖥️ Rendering Layer"]
+        WebGL[WebGL Context]
+        Shaders[GLSL Shaders]
+        PostFX[Post-Processing]
+        CRT[CRT Effects]
+    end
+    
+    subgraph Output["📤 Output Layer"]
+        Canvas[Canvas Element]
+        UI[UI Components]
+    end
+    
+    Audio --> AudioProc
+    UserInput --> ConfigData
+    Config --> ConfigData
+    
+    AudioProc --> FFT
+    AudioProc --> Beat
+    FFT --> AudioData
+    Beat --> AudioData
+    ThemeProc --> ThemeData
+    
+    AudioData --> Spectrum
+    AudioData --> Waveform
+    AudioData --> Particles
+    AudioData --> VU
+    
+    ThemeData --> Visualization
+    
+    Spectrum --> WebGL
+    Waveform --> WebGL
+    Particles --> WebGL
+    VU --> WebGL
+    
+    WebGL --> Shaders
+    Shaders --> PostFX
+    PostFX --> CRT
+    
+    CRT --> Canvas
+    ConfigData --> UI
+    ThemeData --> UI

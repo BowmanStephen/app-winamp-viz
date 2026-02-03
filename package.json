@@ -1,0 +1,94 @@
+{
+  "name": "app-winamp-viz",
+  "version": "1.0.0",
+  "description": "A 90s Winamp-style music visualizer using Three.js, TypeScript, and Web Audio API",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\" \"tests/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "theme:validate": "node scripts/validate-theme.js",
+    "theme:preview": "node scripts/preview-theme.js",
+    "theme:package": "node scripts/package-theme.js",
+    "clean": "rm -rf dist node_modules/.vite",
+    "verify": "npm run typecheck && npm run lint && npm run format:check"
+  },
+  "keywords": [
+    "winamp",
+    "visualizer",
+    "threejs",
+    "webgl",
+    "web-audio",
+    "music",
+    "audio",
+    "fft",
+    "spectrum",
+    "oscilloscope",
+    "milkdrop",
+    "retro",
+    "90s"
+  ],
+  "author": "Winamp Viz Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/app-winamp-viz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/app-winamp-viz/issues"
+  },
+  "homepage": "https://github.com/username/app-winamp-viz#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.160.0",
+    "zustand": "^4.4.7",
+    "@radix-ui/react-slider": "^1.1.2",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-dialog": "^1.0.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/three": "^0.160.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.1.0",
+    "@vitest/ui": "^1.1.0",
+    "@testing-library/react": "^14.1.2",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "happy-dom": "^12.10.3",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.1.0",
+    "vitest-canvas-mock": "^0.3.3"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

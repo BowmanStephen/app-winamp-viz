@@ -1,0 +1,77 @@
+# Component Hierarchy
+# Visual component structure of the application
+
+flowchart TB
+    subgraph App["WinampVisualizerApp"]
+        direction TB
+        
+        subgraph Core["Core Systems"]
+            AE["AudioEngine"]
+            EM["EventBus"]
+            CM["ConfigManager"]
+            SM["StateManager"]
+        end
+        
+        subgraph VM["VisualizerManager"]
+            BV["BaseVisualizer"]
+            
+            BV --> SA["SpectrumAnalyzer"]
+            BV --> OS["Oscilloscope"]
+            BV --> MD["MilkdropRenderer"]
+            BV --> VM2["VUMeter"]
+        end
+        
+        subgraph UI["UI Layer"]
+            MW["MainWindow"]
+            
+            MW --> TB["TitleBar"]
+            MW --> CP["ControlPanel"]
+            MW --> VS["VisualizerSelector"]
+            MW --> PP["PlaylistPanel"]
+            MW --> EP["EqualizerPanel"]
+            MW --> SB["StatusBar"]
+            
+            CP --> Btn["Button3D"]
+            CP --> Sld["Slider"]
+            CP --> PB["ProgressBar"]
+            
+            VS --> VTab["VisualizerTab"]
+            
+            PP --> PL["PlaylistItem"]
+            PP --> SC["ScrollBar"]
+        end
+        
+        subgraph Render["Rendering"]
+            WR["WebGLRenderer"]
+            
+            WR --> SC2["Scene"]
+            WR --> CA["Camera"]
+            WR --> PP2["PostProcess"]
+            
+            PP2 --> CRT["CRTEffect"]
+            PP2 --> SCN["ScanlineEffect"]
+            PP2 --> VIG["VignetteEffect"]
+        end
+        
+        subgraph Themes["Theme System"]
+            TM["ThemeManager"]
+            
+            TM --> TH["Theme"]
+            TH --> CPal["ColorPalette"]
+            TH --> TYPO["Typography"]
+            TH --> UIT["UITheme"]
+            TH --> VT["VisualizerTheme"]
+            TH --> CRTT["CRTSettings"]
+            
+            TM --> BT["Built-in Themes"]
+            TM --> CT["Custom Themes"]
+        end
+    end
+    
+    AE --> VM
+    VM --> Render
+    UI --> VM
+    TM --> UI
+    TM --> VM
+    CM --> AE
+    CM --> TM

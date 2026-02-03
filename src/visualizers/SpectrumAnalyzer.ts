@@ -1,8 +1,9 @@
 /**
  * SpectrumAnalyzer Visualizer
  *
- * FFT frequency bars visualizer with logarithmic frequency distribution,
- * instanced mesh rendering for performance, and phosphor glow effects.
+ * FFT frequency bars visualizer with LED segment style (classic Winamp VU meter).
+ * Each bar is a column of stacked segments that light up based on amplitude.
+ * Green at bottom → Yellow → Red at top.
  *
  * @module SpectrumAnalyzer
  */
@@ -19,16 +20,22 @@ interface PeakHold {
   time: number;
 }
 
+/** Number of LED segments per frequency bar */
+const SEGMENTS_PER_BAR = 20;
+
+/** Gap between segments (fraction of segment height) */
+const SEGMENT_GAP = 0.15;
+
 /**
- * Spectrum analyzer using FFT frequency bars with instanced rendering
+ * Spectrum analyzer using LED segment style with instanced rendering
  */
 export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   private scene: THREE.Scene | null = null;
   private camera: THREE.OrthographicCamera | null = null;
   private renderer: THREE.WebGLRenderer | null = null;
-  private barMesh: THREE.InstancedMesh | null = null;
-  private barGeometry: THREE.BoxGeometry | null = null;
-  private barMaterial: THREE.ShaderMaterial | null = null;
+  private segmentMesh: THREE.InstancedMesh | null = null;
+  private segmentGeometry: THREE.BoxGeometry | null = null;
+  private segmentMaterial: THREE.MeshBasicMaterial | null = null;
 
   // Bar data
   private barCount: number = 64;
@@ -37,9 +44,12 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   private barHeights: Float32Array = new Float32Array(0);
   private targetHeights: Float32Array = new Float32Array(0);
   private peakHolds: PeakHold[] = [];
-  private barXPositions: number[] = []; // Store X positions for each bar
-  private baseY: number = 0; // Base Y position for bars
-  private logicalHeight: number = 0; // Store logical height for render calculations
+
+  // Layout info
+  private segmentHeight: number = 0;
+  private baseY: number = 0;
+  private logicalHeight: number = 0;
+  private startX: number = 0;
 
   // Demo mode
   private isDemoMode: boolean = false;
@@ -50,11 +60,38 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   private minFreq: number = 20;
   private maxFreq: number = 20000;
 
+  // Precomputed segment colors (green → yellow → red)
+  private segmentColors: THREE.Color[] = [];
+
   constructor(config: SpectrumConfig) {
     super(config);
     this.barCount = config.barCount || 64;
     this.minFreq = config.minFrequency || 20;
     this.maxFreq = config.maxFrequency || 20000;
+
+    // Precompute segment colors (bottom to top)
+    this.precomputeSegmentColors();
+  }
+
+  /**
+   * Precompute the LED segment colors (green → yellow → red)
+   */
+  private precomputeSegmentColors(): void {
+    this.segmentColors = [];
+    for (let seg = 0; seg < SEGMENTS_PER_BAR; seg++) {
+      const t = seg / (SEGMENTS_PER_BAR - 1); // 0=bottom, 1=top
+      const color = new THREE.Color();
+
+      if (t < 0.5) {
+        // Green to yellow (bottom half)
+        color.setRGB(t * 2, 1, 0);
+      } else {
+        // Yellow to red (top half)
+        color.setRGB(1, 1 - (t - 0.5) * 2, 0);
+      }
+
+      this.segmentColors.push(color);
+    }
   }
 
   /**
@@ -64,14 +101,13 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
     this.canvas = canvas;
 
     // Use window dimensions to avoid DPR multiplication on re-init
-    // canvas.width may already include DPR scaling from a previous visualizer
     const width = window.innerWidth;
     const height = window.innerHeight;
-    this.logicalHeight = height; // Store for render calculations
+    this.logicalHeight = height;
 
     // Setup Three.js scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
+    this.scene.background = new THREE.Color(0x0a0a12);
 
     // Orthographic camera for 2D bars
     this.camera = new THREE.OrthographicCamera(
@@ -93,8 +129,8 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Initialize bars
-    this.initializeBars(width, height);
+    // Initialize LED segments
+    this.initializeSegments(width, height);
 
     // Initialize frequency mapping
     this.calculateFrequencyBins();
@@ -103,9 +139,9 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   }
 
   /**
-   * Initialize the instanced bar mesh
+   * Initialize the instanced LED segment mesh
    */
-  private initializeBars(width: number, height: number): void {
+  private initializeSegments(width: number, height: number): void {
     this.barCount = Math.min(Math.max(this.config.barCount, 32), 256);
 
     // Calculate bar dimensions
@@ -114,92 +150,68 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
     this.barWidth =
       (totalWidth - this.barSpacing * (this.barCount - 1)) / this.barCount;
 
-    // Create bar geometry (box)
-    this.barGeometry = new THREE.BoxGeometry(1, 1, 1);
-    this.barGeometry.translate(0, 0.5, 0); // Pivot at bottom
+    // Calculate segment dimensions
+    const maxBarHeight = height * 0.85;
+    const totalSegmentHeight = maxBarHeight / SEGMENTS_PER_BAR;
+    this.segmentHeight = totalSegmentHeight * (1 - SEGMENT_GAP);
 
-    // Custom shader material for phosphor glow (works with InstancedMesh)
-    this.barMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uGlowIntensity: { value: 1.0 },
-        uBarCount: { value: this.barCount },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        varying float vHeight;
+    // Create segment geometry (small box)
+    this.segmentGeometry = new THREE.BoxGeometry(1, 1, 1);
 
-        void main() {
-          vUv = uv;
-          vHeight = position.y;
-
-          // Apply instance transform for InstancedMesh
-          vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform float uTime;
-        uniform float uGlowIntensity;
-        uniform float uBarCount;
-
-        varying vec2 vUv;
-        varying float vHeight;
-
-        void main() {
-          // Use vUv.y for color gradient (height-based coloring)
-          float t = vUv.y;
-
-          // Classic spectrum colors: green at bottom -> yellow -> red at top
-          vec3 color;
-          if (t < 0.5) {
-            color = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), t * 2.0);
-          } else {
-            color = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.5) * 2.0);
-          }
-
-          // Phosphor glow effect - brighter at bottom
-          float glow = exp(-vUv.y * 1.5) * uGlowIntensity;
-          color += color * glow * 0.3;
-
-          // Gentle edge softening (minimum 0.7 brightness at edges)
-          float edge = 0.7 + 0.3 * (1.0 - abs(vUv.x - 0.5) * 2.0);
-
-          gl_FragColor = vec4(color * edge, 1.0);
-        }
-      `,
-      transparent: true,
+    // Simple material - colors are per-instance
+    this.segmentMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: false,
     });
 
+    // Total instances = bars × segments per bar
+    const totalInstances = this.barCount * SEGMENTS_PER_BAR;
+
     // Create instanced mesh
-    this.barMesh = new THREE.InstancedMesh(
-      this.barGeometry,
-      this.barMaterial,
-      this.barCount,
+    this.segmentMesh = new THREE.InstancedMesh(
+      this.segmentGeometry,
+      this.segmentMaterial,
+      totalInstances,
     );
 
-    // Initialize instance matrices and store positions
-    const dummy = new THREE.Object3D();
-    const startX = -totalWidth / 2 + this.barWidth / 2;
-    this.baseY = -height / 2 + 10; // Store base Y position
-    this.barXPositions = []; // Reset X positions array
+    // Calculate layout
+    this.startX = -totalWidth / 2 + this.barWidth / 2;
+    this.baseY = -height / 2 + 10;
 
-    for (let i = 0; i < this.barCount; i++) {
-      const x = startX + i * (this.barWidth + this.barSpacing);
-      this.barXPositions.push(x); // Store X position
-      dummy.position.set(x, this.baseY, 0);
-      dummy.scale.set(this.barWidth, 1, 1);
-      dummy.updateMatrix();
-      this.barMesh.setMatrixAt(i, dummy.matrix);
+    // Initialize all instances with positions and colors
+    const dummy = new THREE.Object3D();
+
+    for (let bar = 0; bar < this.barCount; bar++) {
+      const x = this.startX + bar * (this.barWidth + this.barSpacing);
+
+      for (let seg = 0; seg < SEGMENTS_PER_BAR; seg++) {
+        const instanceIndex = bar * SEGMENTS_PER_BAR + seg;
+        const y = this.baseY + seg * totalSegmentHeight + this.segmentHeight / 2;
+
+        // Set position and scale (all segments start "off" - very small scale)
+        dummy.position.set(x, y, 0);
+        dummy.scale.set(this.barWidth, 0.001, 1); // Start hidden
+        dummy.updateMatrix();
+        this.segmentMesh.setMatrixAt(instanceIndex, dummy.matrix);
+
+        // Set color based on vertical position
+        const color = this.segmentColors[seg];
+        if (color) {
+          this.segmentMesh.setColorAt(instanceIndex, color);
+        }
+      }
     }
 
-    this.barMesh.instanceMatrix.needsUpdate = true;
-    this.scene!.add(this.barMesh);
+    this.segmentMesh.instanceMatrix.needsUpdate = true;
+    this.segmentMesh.instanceColor!.needsUpdate = true;
+
+    this.scene!.add(this.segmentMesh);
 
     // Initialize height arrays
     this.barHeights = new Float32Array(this.barCount);
     this.targetHeights = new Float32Array(this.barCount);
-    this.peakHolds = new Array(this.barCount).fill({ value: 0, time: 0 });
+    this.peakHolds = new Array(this.barCount)
+      .fill(null)
+      .map(() => ({ value: 0, time: 0 }));
   }
 
   /**
@@ -232,7 +244,6 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       const freqLow = this.frequencyBins[i];
       const freqHigh = this.frequencyBins[i + 1];
 
-      // Skip if frequency bins are undefined
       if (freqLow === undefined || freqHigh === undefined) continue;
 
       // Convert frequencies to bin indices
@@ -300,7 +311,6 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       const currentPeak = this.peakHolds[i];
       const barHeight = this.barHeights[i];
 
-      // Skip if peak data is missing
       if (!currentPeak || barHeight === undefined) continue;
 
       if (barHeight > currentPeak.value) {
@@ -325,7 +335,7 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
       !this.scene ||
       !this.camera ||
       !this.renderer ||
-      !this.barMesh
+      !this.segmentMesh
     ) {
       return;
     }
@@ -339,40 +349,47 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
 
     const smoothing = this.config.smoothing || 0.3;
     const dummy = new THREE.Object3D();
-    // Use stored logical height to match camera coordinates (not DPR-scaled canvas.height)
-    const maxBarHeight = this.logicalHeight * 0.85;
+    const totalSegmentHeight =
+      (this.logicalHeight * 0.85) / SEGMENTS_PER_BAR;
 
-    // Update bar heights with smoothing
-    for (let i = 0; i < this.barCount; i++) {
-      const targetHeight = this.targetHeights[i] ?? 0;
-      const currentHeight = this.barHeights[i] ?? 0;
+    // Update bar heights with smoothing and update segment visibility
+    for (let bar = 0; bar < this.barCount; bar++) {
+      const targetHeight = this.targetHeights[bar] ?? 0;
+      const currentHeight = this.barHeights[bar] ?? 0;
 
       // Apply smoothing
       const newHeight =
         currentHeight + (targetHeight - currentHeight) * (1 - smoothing);
-      this.barHeights[i] = newHeight;
+      this.barHeights[bar] = newHeight;
 
-      // Scale to pixel height
-      const barHeight = newHeight * maxBarHeight;
+      // Calculate how many segments should be "lit"
+      const activeSegments = Math.ceil(newHeight * SEGMENTS_PER_BAR);
 
-      // Update instance matrix using stored positions (not extracting from matrix)
-      const x = this.barXPositions[i] ?? 0;
-      dummy.position.set(x, this.baseY, 0);
-      dummy.scale.set(this.barWidth, Math.max(barHeight, 1), 1);
-      dummy.updateMatrix();
-      this.barMesh.setMatrixAt(i, dummy.matrix);
+      // Calculate X position for this bar
+      const x = this.startX + bar * (this.barWidth + this.barSpacing);
+
+      // Update each segment's visibility
+      for (let seg = 0; seg < SEGMENTS_PER_BAR; seg++) {
+        const instanceIndex = bar * SEGMENTS_PER_BAR + seg;
+        const y = this.baseY + seg * totalSegmentHeight + this.segmentHeight / 2;
+
+        const isActive = seg < activeSegments;
+
+        dummy.position.set(x, y, 0);
+        dummy.scale.set(
+          this.barWidth,
+          isActive ? this.segmentHeight : 0.001, // Show or hide
+          1,
+        );
+        dummy.updateMatrix();
+        this.segmentMesh.setMatrixAt(instanceIndex, dummy.matrix);
+      }
     }
 
-    this.barMesh.instanceMatrix.needsUpdate = true;
+    this.segmentMesh.instanceMatrix.needsUpdate = true;
 
     // Update peaks
     this.updatePeaks();
-
-    // Update shader uniforms
-    const uniforms = this.barMaterial?.uniforms;
-    if (uniforms?.uTime) {
-      uniforms.uTime.value = performance.now() / 1000;
-    }
 
     // Render
     this.renderer.render(this.scene, this.camera);
@@ -384,6 +401,8 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
   protected onResize(width: number, height: number): void {
     if (!this.camera || !this.renderer) return;
 
+    this.logicalHeight = height;
+
     // Update camera
     this.camera.left = -width / 2;
     this.camera.right = width / 2;
@@ -394,12 +413,12 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
     // Update renderer
     this.renderer.setSize(width, height);
 
-    // Reinitialize bars with new dimensions
-    if (this.barMesh) {
-      this.scene!.remove(this.barMesh);
-      this.barMesh.dispose();
+    // Reinitialize segments with new dimensions
+    if (this.segmentMesh) {
+      this.scene!.remove(this.segmentMesh);
+      this.segmentMesh.dispose();
     }
-    this.initializeBars(width, height);
+    this.initializeSegments(width, height);
   }
 
   /**
@@ -426,19 +445,19 @@ export class SpectrumAnalyzer extends BaseVisualizer<SpectrumConfig> {
    * Clean up all resources
    */
   dispose(): void {
-    if (this.barMesh) {
-      this.barMesh.dispose();
-      this.barMesh = null;
+    if (this.segmentMesh) {
+      this.segmentMesh.dispose();
+      this.segmentMesh = null;
     }
 
-    if (this.barGeometry) {
-      this.barGeometry.dispose();
-      this.barGeometry = null;
+    if (this.segmentGeometry) {
+      this.segmentGeometry.dispose();
+      this.segmentGeometry = null;
     }
 
-    if (this.barMaterial) {
-      this.barMaterial.dispose();
-      this.barMaterial = null;
+    if (this.segmentMaterial) {
+      this.segmentMaterial.dispose();
+      this.segmentMaterial = null;
     }
 
     if (this.renderer) {

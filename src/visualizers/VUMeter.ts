@@ -601,9 +601,16 @@ export class VUMeter extends BaseVisualizer<VUMeterConfig> {
         if (isPeak && !isActive) {
           color = color.map((c) => Math.min(255, c + 50)) as RGB;
         }
+
+        // Apply the color
+        const threeColor = new THREE.Color(color[0] / 255, color[1] / 255, color[2] / 255);
+        this.ledBarsLeft.setColorAt(i, threeColor);
       }
 
       this.ledBarsLeft.instanceMatrix.needsUpdate = true;
+      if (this.ledBarsLeft.instanceColor) {
+        this.ledBarsLeft.instanceColor.needsUpdate = true;
+      }
     }
 
     // Update right channel LEDs
@@ -611,6 +618,7 @@ export class VUMeter extends BaseVisualizer<VUMeterConfig> {
       for (let i = 0; i < ledCount; i++) {
         const threshold = i / ledCount;
         const isActive = this.rightChannel.needleValue >= threshold;
+        const isPeak = this.rightChannel.peakHold >= threshold;
 
         const scaleY = isActive ? 1 : 0.2;
         const scaleX = isActive ? 1 : 0.8;
@@ -620,9 +628,29 @@ export class VUMeter extends BaseVisualizer<VUMeterConfig> {
         dummy.scale.set(scaleX, scaleY, 1);
         dummy.updateMatrix();
         this.ledBarsRight.setMatrixAt(i, dummy.matrix);
+
+        // Color based on zone
+        let color: RGB;
+        if (threshold < 0.6) {
+          color = isActive ? [0, 255, 0] : [0, 50, 0];
+        } else if (threshold < 0.8) {
+          color = isActive ? [255, 255, 0] : [50, 50, 0];
+        } else {
+          color = isActive ? [255, 0, 0] : [50, 0, 0];
+        }
+
+        if (isPeak && !isActive) {
+          color = color.map((c) => Math.min(255, c + 50)) as RGB;
+        }
+
+        const threeColor = new THREE.Color(color[0] / 255, color[1] / 255, color[2] / 255);
+        this.ledBarsRight.setColorAt(i, threeColor);
       }
 
       this.ledBarsRight.instanceMatrix.needsUpdate = true;
+      if (this.ledBarsRight.instanceColor) {
+        this.ledBarsRight.instanceColor.needsUpdate = true;
+      }
     }
 
     // Update needle rotation

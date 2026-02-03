@@ -4,12 +4,18 @@
  * Waveform display with configurable time window, trigger modes,
  * and XY mode support for classic oscilloscope feel.
  *
+ * Uses Line2 from three/addons for thick line rendering (WebGL2 ignores
+ * linewidth on regular THREE.Line).
+ *
  * @module Oscilloscope
  */
 
 import * as THREE from "three";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { BaseVisualizer } from "./BaseVisualizer";
-import type { AudioData, OscilloscopeConfig, RGB } from "../types";
+import type { AudioData, OscilloscopeConfig } from "../types";
 
 /**
  * Trigger mode types
@@ -23,9 +29,9 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
   private scene: THREE.Scene | null = null;
   private camera: THREE.OrthographicCamera | null = null;
   private renderer: THREE.WebGLRenderer | null = null;
-  private waveformLine: THREE.Line | null = null;
-  private lineGeometry: THREE.BufferGeometry | null = null;
-  private lineMaterial: THREE.LineBasicMaterial | null = null;
+  private waveformLine: Line2 | null = null;
+  private lineGeometry: LineGeometry | null = null;
+  private lineMaterial: LineMaterial | null = null;
 
   // Waveform data
   private waveformData: Float32Array = new Float32Array(0);
@@ -50,6 +56,9 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
   // XY mode
   private xyMode: boolean = false;
 
+  // Resolution for LineMaterial
+  private resolution: THREE.Vector2 = new THREE.Vector2(1, 1);
+
   constructor(config: OscilloscopeConfig) {
     super(config);
     this.displaySamples = config.samples || 512;
@@ -67,6 +76,8 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
     // Use window dimensions to avoid DPR multiplication on re-init
     const width = window.innerWidth;
     const height = window.innerHeight;
+
+    this.resolution.set(width, height);
 
     // Setup Three.js scene
     this.scene = new THREE.Scene();
@@ -108,29 +119,29 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
   }
 
   /**
-   * Create the waveform line geometry and material
+   * Create the waveform line geometry and material using Line2
    */
   private createWaveformLine(): void {
-    const positions = new Float32Array(this.displaySamples * 3);
-    const colors = new Float32Array(this.displaySamples * 3);
+    // LineGeometry uses flat arrays: [x1, y1, z1, x2, y2, z2, ...]
+    const positions: number[] = [];
+    for (let i = 0; i < this.displaySamples; i++) {
+      const t = i / (this.displaySamples - 1);
+      positions.push(t * 2 - 1, 0, 0); // x, y, z
+    }
 
-    this.lineGeometry = new THREE.BufferGeometry();
-    this.lineGeometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(positions, 3),
-    );
-    this.lineGeometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(colors, 3),
-    );
+    this.lineGeometry = new LineGeometry();
+    this.lineGeometry.setPositions(positions);
 
-    // Phosphor green color (#00FF41 - classic phosphor)
-    this.lineMaterial = new THREE.LineBasicMaterial({
-      vertexColors: true,
-      linewidth: this.config.lineWidth || 2,
+    // LineMaterial supports actual thick lines in WebGL2
+    this.lineMaterial = new LineMaterial({
+      color: 0x00ff41, // Classic phosphor green
+      linewidth: 3, // Actual pixel width (works with Line2!)
+      resolution: this.resolution,
+      alphaToCoverage: true, // Better antialiasing
     });
 
-    this.waveformLine = new THREE.Line(this.lineGeometry, this.lineMaterial);
+    this.waveformLine = new Line2(this.lineGeometry, this.lineMaterial);
+    this.waveformLine.computeLineDistances();
 
     this.scene!.add(this.waveformLine);
   }
@@ -293,17 +304,8 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
       return;
     }
 
-    const positionAttr = this.lineGeometry.attributes.position;
-    const colorAttr = this.lineGeometry.attributes.color;
-
-    if (!positionAttr || !colorAttr) {
-      return;
-    }
-
-    const positions = positionAttr.array as Float32Array;
-    const colors = colorAttr.array as Float32Array;
-
-    const phosphorColor: RGB = [0, 255, 65]; // Classic phosphor green
+    // Build new positions array for Line2
+    const positions: number[] = [];
 
     for (let i = 0; i < this.displaySamples; i++) {
       const t = i / (this.displaySamples - 1);
@@ -315,87 +317,20 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
         const delayedIndex = (i + 64) % this.displaySamples;
         const delayedValue = this.waveformData[delayedIndex] ?? 0;
         const y = Math.sin(t * Math.PI * 4 + phase) * 0.5 + delayedValue * 0.4;
-
-        positions[i * 3] = x;
-        positions[i * 3 + 1] = y;
+        positions.push(x, y, 0);
       } else {
         // Standard time domain display
-        positions[i * 3] = t * 2 - 1; // Map to -1 to 1
-        positions[i * 3 + 1] = (this.waveformData[i] ?? 0) * 0.9;
+        const x = t * 2 - 1; // Map to -1 to 1
+        const y = (this.waveformData[i] ?? 0) * 0.9;
+        positions.push(x, y, 0);
       }
-
-      positions[i * 3 + 2] = 0;
-
-      // Calculate color based on velocity for trail effect
-      let intensity = 1;
-      if (i > 0) {
-        const prevX = positions[(i - 1) * 3] ?? 0;
-        const prevY = positions[(i - 1) * 3 + 1] ?? 0;
-        const currX = positions[i * 3] ?? 0;
-        const currY = positions[i * 3 + 1] ?? 0;
-        const dx = currX - prevX;
-        const dy = currY - prevY;
-        const velocity = Math.sqrt(dx * dx + dy * dy);
-        intensity = Math.min(1, velocity * 10 + 0.5);
-      }
-
-      colors[i * 3] = (phosphorColor[0] / 255) * intensity;
-      colors[i * 3 + 1] = (phosphorColor[1] / 255) * intensity;
-      colors[i * 3 + 2] = (phosphorColor[2] / 255) * intensity;
     }
 
-    positionAttr.needsUpdate = true;
-    colorAttr.needsUpdate = true;
+    this.lineGeometry.setPositions(positions);
+    this.waveformLine?.computeLineDistances();
 
-    // Clear and render
-    this.renderer.clear();
+    // Render
     this.renderer.render(this.scene, this.camera);
-
-    // Render persistence trails if enabled
-    if (this.persistenceBuffer.length > 1) {
-      this.renderPersistenceTrails();
-    }
-  }
-
-  /**
-   * Render persistence trails
-   */
-  private renderPersistenceTrails(): void {
-    if (!this.lineGeometry || !this.renderer || !this.scene || !this.camera) {
-      return;
-    }
-
-    const positionAttr = this.lineGeometry.attributes.position;
-    const colorAttr = this.lineGeometry.attributes.color;
-
-    if (!positionAttr || !colorAttr) {
-      return;
-    }
-
-    const positions = positionAttr.array as Float32Array;
-    const colors = colorAttr.array as Float32Array;
-
-    for (let frame = 1; frame < this.persistenceBuffer.length; frame++) {
-      const data = this.persistenceBuffer[frame];
-      if (!data) {
-        continue;
-      }
-      const alpha = 1 - frame / this.persistenceBuffer.length;
-
-      for (let i = 0; i < this.displaySamples; i++) {
-        const t = i / (this.displaySamples - 1);
-        positions[i * 3] = t * 2 - 1;
-        positions[i * 3 + 1] = (data[i] ?? 0) * 0.9;
-
-        colors[i * 3] = 0;
-        colors[i * 3 + 1] = 0.25 * alpha;
-        colors[i * 3 + 2] = 0.06 * alpha;
-      }
-
-      positionAttr.needsUpdate = true;
-      colorAttr.needsUpdate = true;
-      this.renderer.render(this.scene, this.camera);
-    }
   }
 
   /**
@@ -409,7 +344,7 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
    * Handle resize
    */
   protected onResize(width: number, height: number): void {
-    if (!this.camera || !this.renderer) return;
+    if (!this.camera || !this.renderer || !this.lineMaterial) return;
 
     const aspect = width / height;
 
@@ -427,6 +362,10 @@ export class Oscilloscope extends BaseVisualizer<OscilloscopeConfig> {
 
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+
+    // Update LineMaterial resolution (required for correct line width)
+    this.resolution.set(width, height);
+    this.lineMaterial.resolution = this.resolution;
   }
 
   /**

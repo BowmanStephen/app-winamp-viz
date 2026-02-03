@@ -52,6 +52,8 @@ const App: FC = () => {
   // Keep refs in sync for animation loop
   useEffect(() => {
     managerRef.current = manager;
+    // Enable demo mode on visualizer for synthetic animation
+    manager?.setDemoMode(true);
   }, [manager]);
 
   useEffect(() => {
@@ -108,9 +110,11 @@ const App: FC = () => {
 
   const handleVisualizerSelect = useCallback(
     (id: string) => {
-      switchVisualizer(id).catch(console.error);
+      switchVisualizer(id)
+        .then(() => manager?.setDemoMode(true))
+        .catch(console.error);
     },
-    [switchVisualizer]
+    [switchVisualizer, manager]
   );
 
   const handleThemeCycle = useCallback(() => {

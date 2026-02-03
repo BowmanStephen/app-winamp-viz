@@ -457,7 +457,6 @@ export class MilkdropVisualizer extends BaseVisualizer<MilkdropConfig> {
     if (bassEnergy > 0.6 && now - this.lastBeatTime > 150) {
       this.localBeatIntensity = 1.0;
       this.lastBeatTime = now;
-      this.onBeat?.(this.localBeatIntensity);
     } else {
       this.localBeatIntensity *= 0.95;
     }

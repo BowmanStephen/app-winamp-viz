@@ -1,18 +1,27 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SpectrumAnalyzer } from '../../../src/visualizers/SpectrumAnalyzer';
 import { createMockAudioData, createSilentAudioData, createFullScaleAudioData } from '../../utils/test-helpers';
-import * as THREE from 'three';
 
-// Mock THREE.js
+// Mock THREE.js with Color.setRGB for LED segment colors
 vi.mock('three', () => ({
   Scene: vi.fn(() => ({
     add: vi.fn(),
     remove: vi.fn(),
+    background: null,
   })),
   WebGLRenderer: vi.fn(() => ({
     render: vi.fn(),
     setSize: vi.fn(),
+    setPixelRatio: vi.fn(),
     dispose: vi.fn(),
+  })),
+  OrthographicCamera: vi.fn(() => ({
+    position: { z: 0 },
+    left: -1,
+    right: 1,
+    top: 1,
+    bottom: -1,
+    updateProjectionMatrix: vi.fn(),
   })),
   PerspectiveCamera: vi.fn(() => ({
     position: { set: vi.fn() },
@@ -32,10 +41,22 @@ vi.mock('three', () => ({
     scale: { y: 0, set: vi.fn() },
     clone: vi.fn(function() { return this; }),
   })),
-  Color: vi.fn((hex) => ({ hex })),
+  Color: vi.fn(() => ({
+    r: 0,
+    g: 0,
+    b: 0,
+    setRGB: vi.fn(function(this: { r: number; g: number; b: number }, r: number, g: number, b: number) {
+      this.r = r;
+      this.g = g;
+      this.b = b;
+      return this;
+    }),
+  })),
   InstancedMesh: vi.fn(() => ({
     setMatrixAt: vi.fn(),
+    setColorAt: vi.fn(),
     instanceMatrix: { needsUpdate: false },
+    instanceColor: { needsUpdate: false },
     dispose: vi.fn(),
   })),
   Object3D: vi.fn(() => ({

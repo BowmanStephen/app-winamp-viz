@@ -23,11 +23,11 @@ const STYLES = `
   background: repeating-linear-gradient(
     0deg,
     rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.12) 2px,
-    rgba(0, 0, 0, 0.12) 4px
+    rgba(0, 0, 0, 0) 1px,
+    rgba(0, 0, 0, 0.28) 1px,
+    rgba(0, 0, 0, 0.28) 2px
   );
-  background-size: 100% 4px;
+  background-size: 100% 2px;
 }
 
 .crt-vignette {
@@ -36,9 +36,16 @@ const STYLES = `
   background: radial-gradient(
     ellipse at center,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 50%,
-    rgba(0, 0, 0, 0.4) 100%
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0.55) 100%
   );
+}
+
+.crt-glow {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 80px rgba(0, 255, 100, 0.03),
+              inset 0 0 40px rgba(0, 255, 100, 0.02);
 }
 `;
 
@@ -51,6 +58,7 @@ export const CRTOverlay: FC<CRTOverlayProps> = ({ enabled }) => {
       <div className="crt-overlay">
         <div className="crt-scanlines" />
         <div className="crt-vignette" />
+        <div className="crt-glow" />
       </div>
     </>
   );

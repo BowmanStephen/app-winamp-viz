@@ -1,16 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Oscilloscope } from '../../../src/visualizers/Oscilloscope';
 import { createMockAudioData, createSineWaveBuffer } from '../../utils/test-helpers';
-import * as THREE from 'three';
 
-// Mock THREE.js
+// Mock THREE.js with Vector2 for LineMaterial resolution
 vi.mock('three', () => ({
   Scene: vi.fn(() => ({
     add: vi.fn(),
     remove: vi.fn(),
+    background: null,
   })),
   WebGLRenderer: vi.fn(() => ({
     render: vi.fn(),
+    setSize: vi.fn(),
+    setPixelRatio: vi.fn(),
+    dispose: vi.fn(),
+    clear: vi.fn(),
+  })),
+  OrthographicCamera: vi.fn(() => ({
+    position: { z: 0 },
+    left: -1,
+    right: 1,
+    top: 1,
+    bottom: -1,
+    updateProjectionMatrix: vi.fn(),
   })),
   PerspectiveCamera: vi.fn(),
   BufferGeometry: vi.fn(() => ({
@@ -23,6 +35,7 @@ vi.mock('three', () => ({
   LineBasicMaterial: vi.fn(() => ({
     dispose: vi.fn(),
     color: { set: vi.fn() },
+    linewidth: 1,
   })),
   Line: vi.fn(() => ({
     geometry: {
@@ -32,7 +45,44 @@ vi.mock('three', () => ({
     material: { color: { set: vi.fn() } },
   })),
   Float32BufferAttribute: vi.fn((array, itemSize) => ({ array, itemSize })),
-  Color: vi.fn((hex) => ({ hex })),
+  Color: vi.fn((hex) => ({ hex, r: 0, g: 1, b: 0 })),
+  Vector2: vi.fn((x = 0, y = 0) => ({
+    x,
+    y,
+    set: vi.fn(function(this: { x: number; y: number }, newX: number, newY: number) {
+      this.x = newX;
+      this.y = newY;
+      return this;
+    }),
+  })),
+}));
+
+// Mock three/addons for Line2, LineMaterial, LineGeometry
+vi.mock('three/addons/lines/Line2.js', () => ({
+  Line2: vi.fn(() => ({
+    computeLineDistances: vi.fn(),
+    geometry: null,
+    material: null,
+  })),
+}));
+
+vi.mock('three/addons/lines/LineMaterial.js', () => ({
+  LineMaterial: vi.fn((params: Record<string, unknown> = {}) => ({
+    color: params.color ?? 0x00ff41,
+    linewidth: params.linewidth ?? 1,
+    resolution: params.resolution ?? { x: 1, y: 1, set: vi.fn() },
+    alphaToCoverage: params.alphaToCoverage ?? false,
+    dispose: vi.fn(),
+    needsUpdate: false,
+  })),
+}));
+
+vi.mock('three/addons/lines/LineGeometry.js', () => ({
+  LineGeometry: vi.fn(() => ({
+    setPositions: vi.fn(),
+    dispose: vi.fn(),
+    attributes: {},
+  })),
 }));
 
 describe('Oscilloscope', () => {

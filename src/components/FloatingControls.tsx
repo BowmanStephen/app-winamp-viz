@@ -162,13 +162,18 @@ export const FloatingControls: FC<FloatingControlsProps> = ({
   return (
     <>
       <style>{STYLES}</style>
-      <div className={`floating-controls ${visible ? "" : "hidden"}`}>
+      <div
+        className={`floating-controls ${visible ? "" : "hidden"}`}
+        data-testid="visualizer-selector"
+      >
         {visualizers.map((viz, i) => (
           <button
             key={viz.id}
             className={`viz-pill ${currentVisualizer === viz.id ? "active" : ""}`}
             onClick={() => onVisualizerSelect(viz.id)}
             title={`${viz.name} (${i + 1})`}
+            data-testid="visualizer-option"
+            data-id={viz.id}
           >
             {viz.name}
           </button>

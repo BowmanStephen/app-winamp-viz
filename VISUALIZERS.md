@@ -1,5 +1,7 @@
 # Visualizer Documentation
 
+> Note: The app now uses ShaderToy-based fragment shaders. See `SHADERS.md` for\n+> the current shader list and attribution. This document describes the legacy\n+> visualizer system and will be updated later.
+
 ```
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║                           VISUALIZER DOCUMENTATION                        ║

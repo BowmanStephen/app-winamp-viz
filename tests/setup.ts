@@ -359,59 +359,6 @@ global.AudioContext = MockAudioContext as any;
 global.webkitAudioContext = MockAudioContext as any;
 
 // ============================================================================
-// Three.js Mock Setup
-// ============================================================================
-
-vi.mock('three', async () => {
-  const actual = await vi.importActual<typeof import('three')>('three');
-
-  return {
-    ...actual,
-    // Override specific classes for testing
-    WebGLRenderer: vi.fn().mockImplementation(() => ({
-      domElement: document.createElement('canvas'),
-      setSize: vi.fn(),
-      setPixelRatio: vi.fn(),
-      render: vi.fn(),
-      dispose: vi.fn(),
-      clear: vi.fn(),
-      info: {
-        render: { calls: 0, triangles: 0, points: 0, lines: 0 },
-        memory: { geometries: 0, textures: 0 },
-      },
-    })),
-  };
-});
-
-// Mock three/addons for Line2, LineMaterial, LineGeometry
-vi.mock('three/addons/lines/Line2.js', () => ({
-  Line2: vi.fn().mockImplementation(() => ({
-    computeLineDistances: vi.fn(),
-    geometry: null,
-    material: null,
-  })),
-}));
-
-vi.mock('three/addons/lines/LineMaterial.js', () => ({
-  LineMaterial: vi.fn().mockImplementation((params: Record<string, unknown> = {}) => ({
-    color: params.color ?? 0x00ff41,
-    linewidth: params.linewidth ?? 1,
-    resolution: params.resolution ?? { x: 1, y: 1, set: vi.fn() },
-    alphaToCoverage: params.alphaToCoverage ?? false,
-    dispose: vi.fn(),
-    needsUpdate: false,
-  })),
-}));
-
-vi.mock('three/addons/lines/LineGeometry.js', () => ({
-  LineGeometry: vi.fn().mockImplementation(() => ({
-    setPositions: vi.fn(),
-    dispose: vi.fn(),
-    attributes: {},
-  })),
-}));
-
-// ============================================================================
 // Match Media Mock (for responsive tests)
 // ============================================================================
 

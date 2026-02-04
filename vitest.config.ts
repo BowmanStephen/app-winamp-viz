@@ -39,9 +39,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@core": path.resolve(__dirname, "./src/core"),
-      "@visualizers": path.resolve(__dirname, "./src/visualizers"),
       "@themes": path.resolve(__dirname, "./src/themes"),
-      "@audio": path.resolve(__dirname, "./src/audio"),
       "@utils": path.resolve(__dirname, "./src/utils"),
     },
   },

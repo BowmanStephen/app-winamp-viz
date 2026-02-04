@@ -9,20 +9,16 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@core": path.resolve(__dirname, "./src/core"),
-      "@visualizers": path.resolve(__dirname, "./src/visualizers"),
       "@themes": path.resolve(__dirname, "./src/themes"),
-      "@audio": path.resolve(__dirname, "./src/audio"),
       "@ui": path.resolve(__dirname, "./src/ui"),
       "@utils": path.resolve(__dirname, "./src/utils"),
       "@types": path.resolve(__dirname, "./src/types"),
       "@components": path.resolve(__dirname, "./src/components"),
-      "@hooks": path.resolve(__dirname, "./src/hooks"),
-      "@store": path.resolve(__dirname, "./src/store"),
     },
   },
 
   optimizeDeps: {
-    include: ["three", "react", "react-dom", "zustand"],
+    include: ["react", "react-dom", "zustand"],
     exclude: [],
   },
 
@@ -34,7 +30,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vendor-react": ["react", "react-dom"],
-          "vendor-three": ["three"],
           "vendor-radix": ["@radix-ui/react-slider", "@radix-ui/react-select"],
           "vendor-state": ["zustand"],
         },

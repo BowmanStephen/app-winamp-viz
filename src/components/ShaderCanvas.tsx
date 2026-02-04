@@ -233,8 +233,9 @@ export const ShaderCanvas: FC<ShaderCanvasProps> = ({ shader }) => {
 
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, fallback);
-      if (uniforms.channelSamplers[i]) {
-        gl.uniform1i(uniforms.channelSamplers[i], i);
+      const sampler = uniforms.channelSamplers[i] ?? null;
+      if (sampler) {
+        gl.uniform1i(sampler, i);
       }
     }
 

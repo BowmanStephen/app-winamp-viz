@@ -9,7 +9,6 @@ import { FloatingControls } from "./components/FloatingControls";
 import { CRTOverlay } from "./components/CRTOverlay";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ShaderCanvas } from "./components/ShaderCanvas";
-import { ShaderCredits } from "./components/ShaderCredits";
 
 import { ThemeManager, BUILT_IN_THEMES } from "./themes/ThemeManager";
 import { SHADERS } from "./shaders";
@@ -64,7 +63,6 @@ const App: FC = () => {
         }}
       >
         {currentShader ? <ShaderCanvas shader={currentShader} /> : null}
-        {currentShader ? <ShaderCredits shader={currentShader} /> : null}
 
         <FloatingControls
           visualizers={SHADERS.map((shader) => ({

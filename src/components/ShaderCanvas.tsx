@@ -109,6 +109,10 @@ uniform sampler2D iChannel2;
 uniform sampler2D iChannel3;
 uniform vec3 iChannelResolution[4];
 
+#if __VERSION__ < 300
+#define texture texture2D
+#endif
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord);
 
 void main() {
@@ -235,6 +239,7 @@ export const ShaderCanvas: FC<ShaderCanvasProps> = ({ shader }) => {
     }
 
     const channels = shader.channels ?? [];
+    let disposed = false;
 
     channels.forEach((channel, index) => {
       if (index >= CHANNEL_COUNT) return;
@@ -245,6 +250,7 @@ export const ShaderCanvas: FC<ShaderCanvasProps> = ({ shader }) => {
       const image = new Image();
       image.crossOrigin = "anonymous";
       image.onload = () => {
+        if (disposed) return;
         gl.activeTexture(gl.TEXTURE0 + index);
         const texture = channelTextures[index] ?? gl.createTexture();
         if (!texture) return;
@@ -258,6 +264,7 @@ export const ShaderCanvas: FC<ShaderCanvasProps> = ({ shader }) => {
         channelResolution[index * 3 + 2] = 1;
       };
       image.onerror = () => {
+        if (disposed) return;
         console.warn("[ShaderCanvas] Failed to load channel texture:", channel.url);
       };
       image.src = channel.url;
@@ -351,6 +358,7 @@ export const ShaderCanvas: FC<ShaderCanvasProps> = ({ shader }) => {
     animationId = requestAnimationFrame(render);
 
     return () => {
+      disposed = true;
       if (animationId) cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);

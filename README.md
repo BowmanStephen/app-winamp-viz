@@ -175,7 +175,7 @@ flowchart TB
 
 ### Minimum
 - **Browser**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- **WebGL**: Version 2.0 support required
+- **WebGL**: Version 1.0+ supported (WebGL 2.0 recommended)
 - **Memory**: 4GB RAM
 - **CPU**: Dual-core processor
 

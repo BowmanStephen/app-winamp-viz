@@ -54,7 +54,7 @@ describe("Shader Smoke Tests", () => {
     it("should have WebGL support", async () => {
       const hasWebGL = await page.evaluate(() => {
         const canvas = document.createElement("canvas");
-        const gl = canvas.getContext("webgl");
+        const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
         return gl !== null;
       });
 

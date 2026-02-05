@@ -16,8 +16,6 @@ interface FloatingControlsProps {
   onVisualizerSelect: (id: string) => void;
   crtEnabled: boolean;
   onCrtToggle: () => void;
-  onThemeCycle: () => void;
-  themeName: string;
 }
 
 const STYLES = `
@@ -102,8 +100,6 @@ export const FloatingControls: FC<FloatingControlsProps> = ({
   onVisualizerSelect,
   crtEnabled,
   onCrtToggle,
-  onThemeCycle,
-  themeName,
 }) => {
   const [visible, setVisible] = useState(true);
   const [lastActivity, setLastActivity] = useState(Date.now());
@@ -142,12 +138,6 @@ export const FloatingControls: FC<FloatingControlsProps> = ({
         handleActivity();
       }
 
-      // T for theme
-      if (e.key.toLowerCase() === "t") {
-        onThemeCycle();
-        handleActivity();
-      }
-
       // C for CRT
       if (e.key.toLowerCase() === "c") {
         onCrtToggle();
@@ -157,7 +147,7 @@ export const FloatingControls: FC<FloatingControlsProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [visualizers, onVisualizerSelect, onThemeCycle, onCrtToggle, handleActivity]);
+  }, [visualizers, onVisualizerSelect, onCrtToggle, handleActivity]);
 
   return (
     <>
@@ -180,14 +170,6 @@ export const FloatingControls: FC<FloatingControlsProps> = ({
         ))}
 
         <div className="divider" />
-
-        <button
-          className="toggle-btn"
-          onClick={onThemeCycle}
-          title="Cycle theme (T)"
-        >
-          {themeName}
-        </button>
 
         <button
           className={`toggle-btn ${crtEnabled ? "active" : ""}`}

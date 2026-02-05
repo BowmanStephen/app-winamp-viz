@@ -312,7 +312,6 @@ We welcome contributions! Please see [DEVELOPMENT.md](./DEVELOPMENT.md) for:
 - Setting up your development environment
 - Code style guidelines
 - How to add new visualizers
-- How to create themes
 - Testing requirements
 
 ## 📝 License

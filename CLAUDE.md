@@ -28,10 +28,6 @@ State: Zustand store at `src/store/useAudioStore.ts`
 3. Register in `VisualizerManager`
 4. Add tests in `tests/unit/visualizers/`
 
-## Adding a Theme
-
-Copy `src/themes/WinampClassic.ts` as template. Define `palette` and optional `shaderUniforms`.
-
 ## Testing
 
 - Unit: `tests/unit/` with mocks at `tests/mocks/webgl.ts` and `tests/mocks/webaudio.ts`

@@ -38,10 +38,6 @@ export type RGB = [number, number, number];
  */
 export type RGBA = [number, number, number, number];
 
-/**
- * Color can be RGB tuple or hex string
- */
-export type ColorValue = RGB | string;
 
 // ============================================================================
 // Audio Types
@@ -155,8 +151,6 @@ export interface VisualizerConfig {
   /** Update interval in milliseconds */
   updateInterval: number;
 
-  /** Theme ID to use */
-  themeId: string;
 }
 
 /**
@@ -372,75 +366,6 @@ export type VisualizerConfigUnion =
   | ParticlesConfig;
 
 // ============================================================================
-// Theme Types
-// ============================================================================
-
-/**
- * Color palette definition
- */
-export interface ColorPalette {
-  /** Primary accent color */
-  primary: ColorValue;
-
-  /** Secondary accent color */
-  secondary: ColorValue;
-
-  /** Background color */
-  background: ColorValue;
-
-  /** Foreground/text color */
-  foreground: ColorValue;
-
-  /** Muted/subtle color */
-  muted: ColorValue;
-
-  /** Array of colors for spectrum visualization */
-  spectrum: ColorValue[];
-
-  /** Gradient stops */
-  gradients: Array<{
-    name: string;
-    colors: ColorValue[];
-    positions?: number[];
-  }>;
-}
-
-/**
- * Theme definition
- */
-export interface Theme {
-  /** Unique theme identifier */
-  id: string;
-
-  /** Theme name */
-  name: string;
-
-  /** Theme author */
-  author?: string;
-
-  /** Theme version */
-  version?: string;
-
-  /** Theme description */
-  description?: string;
-
-  /** Color palette */
-  palette: ColorPalette;
-
-  /** Custom shader uniforms for Milkdrop */
-  shaderUniforms?: Record<string, number | number[]>;
-
-  /** Whether this is a built-in theme */
-  builtIn: boolean;
-
-  /** Creation timestamp */
-  createdAt: number;
-
-  /** Last modified timestamp */
-  modifiedAt: number;
-}
-
-// ============================================================================
 // Abstract/Base Types
 // ============================================================================
 
@@ -505,8 +430,6 @@ export interface AppState {
   // Visualizers
   activeVisualizers: VisualizerType[];
   visualizerConfigs: Record<string, VisualizerConfig>;
-  currentTheme: Theme | null;
-
   // UI
   isFullscreen: boolean;
   showControls: boolean;
@@ -524,7 +447,6 @@ export interface AppState {
     id: string,
     config: Partial<VisualizerConfig>,
   ) => void;
-  setTheme: (theme: Theme) => void;
   toggleFullscreen: () => void;
   toggleControls: () => void;
   togglePlaylist: () => void;
@@ -578,9 +500,6 @@ export interface AppConfig {
 
   /** Canvas pixel ratio */
   pixelRatio: number;
-
-  /** Default theme ID */
-  defaultThemeId: string;
 
   /** Maximum visualizer layers */
   maxVisualizerLayers: number;

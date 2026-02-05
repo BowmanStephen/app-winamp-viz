@@ -52,7 +52,7 @@ body {
    ============================================================================ */
 
 :root {
-  /* Color palette - defaults (overridden by themes) */
+  /* Color palette defaults */
   --theme-primary: #00ff9d;
   --theme-secondary: #00d9ff;
   --theme-background: #0a0a1a;
